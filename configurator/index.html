@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sweep Configurator</title>
+<style>
+:root {
+  --bg: #f6f6f4; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6b66; --line: #dcdcd6;
+  --key: #ffffff; --key-edge: #c9c9c2; --key-hover: #f0f0ea; --accent: #2f6fdf; --accent-ink: #fff;
+  --accent-soft: #e3ecfc; --warn: #b25b00; --warn-soft: #fff1df; --bad: #c4312b; --bad-soft: #fde7e5;
+  --ok: #2c8a4b; --combo: #8a3fd1; --combo-soft: #f0e6fb; --trns: #a9a9a2;
+  --shadow: 0 1px 0 var(--key-edge), 0 2px 6px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161716; --panel: #1f201f; --ink: #ecece8; --muted: #9b9b95; --line: #333431;
+    --key: #2a2b29; --key-edge: #121312; --key-hover: #333531; --accent: #6b9cf5; --accent-ink: #0d1424;
+    --accent-soft: #23324f; --warn: #f0a447; --warn-soft: #3b2a14; --bad: #f2736c; --bad-soft: #43201e;
+    --ok: #5cc27f; --combo: #bb8af0; --combo-soft: #33264a; --trns: #6a6a64;
+    --shadow: 0 1px 0 var(--key-edge), 0 2px 8px rgba(0,0,0,.35);
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+
+header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+header h1 { font-size: 18px; margin: 0; font-weight: 650; letter-spacing: -.01em; }
+.conn { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--trns); }
+.dot.on { background: var(--ok); }
+.spacer { flex: 1; }
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 12px; }
+.btn:hover { background: var(--key-hover); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.btn.primary:disabled { opacity: .45; cursor: default; }
+.btn.small { padding: 3px 9px; font-size: 13px; }
+.btn.active { background: var(--accent-soft); border-color: var(--accent); }
+
+.banner { border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 13px; display: none; }
+.banner.show { display: block; }
+.banner.warn { background: var(--warn-soft); color: var(--warn); }
+.banner.bad { background: var(--bad-soft); color: var(--bad); }
+.banner.ok { background: var(--accent-soft); color: var(--ink); }
+
+.tabs { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.tab { border: 1px solid transparent; background: none; border-radius: 8px; padding: 5px 12px; color: var(--muted); }
+.tab:hover { color: var(--ink); }
+.tab.sel { background: var(--panel); border-color: var(--line); color: var(--ink); font-weight: 600; }
+.tab .n { font-variant-numeric: tabular-nums; opacity: .6; margin-right: 5px; }
+.tabs .gap { flex: 1; }
+
+.board-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+.board { position: relative; margin: 0 auto; }
+.key { position: absolute; border: 1px solid var(--key-edge); background: var(--key); border-radius: 7px;
+  box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 2px; text-align: center; user-select: none; overflow: hidden; }
+.key:hover { background: var(--key-hover); }
+.key.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
+.key.invalid { border-color: var(--bad); background: var(--bad-soft); }
+.key.trns .main { color: var(--trns); }
+.key.combo-member { background: var(--combo-soft); border-color: var(--combo); }
+.key .main { font-weight: 600; font-size: calc(var(--u) * .24); line-height: 1.1; word-break: break-all; }
+.key .main.long { font-size: calc(var(--u) * .17); }
+.key .sub { font-size: calc(var(--u) * .15); color: var(--muted); line-height: 1.1; margin-top: 2px; white-space: nowrap; }
+.key .pos { position: absolute; top: 2px; left: 4px; font-size: 9px; color: var(--trns); }
+.legend { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-top: 10px; gap: 10px; flex-wrap: wrap; }
+
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; margin-top: 14px; }
+@media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+.card h2 { font-size: 14px; margin: 0 0 10px; font-weight: 650; display: flex; align-items: center; gap: 8px; }
+.card h2 .hint { font-weight: 400; color: var(--muted); font-size: 12px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.row label { color: var(--muted); font-size: 12px; min-width: 64px; }
+input[type=text], input[type=number], select { background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px; }
+input.expr { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; flex: 1; min-width: 160px; }
+input.expr.bad { border-color: var(--bad); }
+.err { color: var(--bad); font-size: 12px; min-height: 16px; }
+.cats { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+.palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 4px; max-height: 210px; overflow: auto; padding: 2px; }
+.pk { border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 6px 2px; font-size: 12px; text-align: center; }
+.pk:hover { border-color: var(--accent); }
+.pk.on { background: var(--accent-soft); border-color: var(--accent); }
+.checks { display: flex; gap: 10px; flex-wrap: wrap; }
+.checks label { display: flex; gap: 4px; align-items: center; color: var(--ink); min-width: 0; font-size: 13px; }
+.combo { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.combo:last-child { border-bottom: 0; }
+.combo .ks { font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: var(--combo); flex: 1; min-width: 90px; }
+.combo input { width: 110px; font-family: ui-monospace, Consolas, monospace; }
+.muted { color: var(--muted); font-size: 12px; }
+.settings { display: grid; grid-template-columns: 1fr auto; gap: 8px 10px; align-items: center; }
+.settings input { width: 80px; }
+.menu { position: relative; }
+.menu-list { position: absolute; right: 0; top: calc(100% + 4px); background: var(--panel); border: 1px solid var(--line);
+  border-radius: 8px; padding: 4px; display: none; z-index: 5; min-width: 200px; box-shadow: 0 8px 24px rgba(0,0,0,.15); }
+.menu-list.open { display: block; }
+.menu-list button { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 7px 10px; border-radius: 6px; }
+.menu-list button:hover { background: var(--key-hover); }
+.listen { animation: pulse 1s infinite; }
+@keyframes pulse { 50% { background: var(--accent-soft); } }
+kbd { font-family: ui-monospace, Consolas, monospace; font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Sweep Configurator</h1>
+    <div class="conn"><span class="dot" id="connDot"></span><span id="connText">No keyboard opened</span></div>
+    <div class="spacer"></div>
+    <button class="btn" id="openBtn">Open keyboard drive…</button>
+    <button class="btn primary" id="saveBtn" disabled>Save to keyboard</button>
+    <div class="menu">
+      <button class="btn" id="moreBtn" aria-haspopup="true">More ▾</button>
+      <div class="menu-list" id="moreMenu">
+        <button id="importBtn">Import keymap.json…</button>
+        <button id="downloadBtn">Download keymap.json</button>
+        <button id="resetBtn">Reset to default keymap</button>
+      </div>
+    </div>
+    <input type="file" id="fileInput" accept=".json,application/json" hidden>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="board-card">
+    <div class="board" id="board"></div>
+    <div class="legend">
+      <span>Click a key to edit it. <kbd>←↑→↓</kbd> move, <kbd>Del</kbd> clears, <kbd>Ctrl+Z</kbd> undo.</span>
+      <span id="stats"></span>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card" id="editor">
+      <h2>Key <span class="hint" id="keyTitle"></span></h2>
+      <div class="row">
+        <input type="text" class="expr" id="exprInput" spellcheck="false" autocomplete="off" aria-label="Key expression">
+        <button class="btn small" id="listenBtn" title="Press a key on any keyboard to assign it">Press a key…</button>
+      </div>
+      <div class="err" id="exprErr"></div>
+
+      <div class="row">
+        <label>Tap</label>
+        <span id="tapLabel" class="muted"></span>
+      </div>
+      <div class="cats" id="cats"></div>
+      <div class="palette" id="palette"></div>
+
+      <div class="row" style="margin-top:12px">
+        <label>With mods</label>
+        <div class="checks" id="withMods"></div>
+      </div>
+      <div class="row">
+        <label>On hold</label>
+        <select id="holdSel" aria-label="Action when held"></select>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Layers</h2>
+        <div class="row">
+          <input type="text" id="layerName" aria-label="Layer name" style="flex:1">
+          <button class="btn small" id="addLayerBtn">Add layer</button>
+          <button class="btn small" id="delLayerBtn">Delete</button>
+        </div>
+        <div class="row" style="margin:0">
+          <button class="btn small" id="moveLeftBtn">◀ Move</button>
+          <button class="btn small" id="moveRightBtn">Move ▶</button>
+          <button class="btn small" id="copyLayerBtn">Duplicate</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <h2>Combos <span class="hint">press keys together, work on every layer</span></h2>
+        <div id="combos"></div>
+        <div class="row" style="margin:8px 0 0">
+          <button class="btn small" id="addComboBtn">Add combo</button>
+          <span class="muted" id="comboHint"></span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <h2>Timing</h2>
+        <div class="settings">
+          <label for="sTap">Hold threshold (tap vs. hold), ms</label><input type="number" id="sTap" min="50" max="1000" step="10">
+          <label for="sCombo">Combo window, ms</label><input type="number" id="sCombo" min="10" max="500" step="5">
+          <label for="sDeb">Debounce, ms</label><input type="number" id="sDeb" min="1" max="100" step="1">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ------------------------------------------------------------------ geometry
+// Positions follow QMK's ferris/sweep layout (units). Index = keymap.json position.
+const COL_Y = [0.93, 0.31, 0, 0.28, 0.42];
+const GEOM = [];
+for (let r = 0; r < 3; r++) {
+  for (let c = 0; c < 5; c++) GEOM.push({ x: c, y: COL_Y[c] + r });
+  for (let c = 0; c < 5; c++) GEOM.push({ x: 7 + c, y: COL_Y[4 - c] + r });
+}
+GEOM.push({ x: 3.5, y: 3.75 }, { x: 4.5, y: 4 }, { x: 6.5, y: 4 }, { x: 7.5, y: 3.75 });
+const NUM_KEYS = 34;
+const BOARD_W = 12, BOARD_H = 5;
+
+// ------------------------------------------------------------------ key catalogue
+// name, label, [aliases]. Every name here is a valid KMK key name.
+const CATALOGUE = {
+  Letters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(c => [c, c]),
+  Numbers: '1234567890'.split('').map(d => ['N' + d, d]),
+  Symbols: [
+    ['MINS','-'],['EQL','='],['LBRC','['],['RBRC',']'],['BSLS','\\'],['SCLN',';'],['QUOT',"'"],['GRV','`'],
+    ['COMM',','],['DOT','.'],['SLSH','/'],['EXLM','!'],['AT','@'],['HASH','#'],['DLR','$'],['PERC','%'],
+    ['CIRC','^'],['AMPR','&'],['ASTR','*'],['LPRN','('],['RPRN',')'],['UNDS','_'],['PLUS','+'],['LCBR','{'],
+    ['RCBR','}'],['PIPE','|'],['COLN',':'],['DQUO','"'],['TILD','~'],['LABK','<'],['RABK','>'],['QUES','?'],
+  ],
+  Editing: [
+    ['ESC','Esc'],['TAB','Tab'],['ENT','Enter'],['SPC','Space'],['BSPC','⌫'],['DEL','Del'],['INS','Ins'],
+    ['CAPS','Caps'],['PSCR','PrtSc'],
+  ],
+  Navigation: [
+    ['LEFT','←'],['DOWN','↓'],['UP','↑'],['RGHT','→'],['HOME','Home'],['END','End'],['PGUP','PgUp'],['PGDN','PgDn'],
+  ],
+  Modifiers: [
+    ['LCTL','Ctrl'],['LSFT','Shift'],['LALT','Alt'],['LGUI','Win'],['RCTL','RCtrl'],['RSFT','RShift'],['RALT','AltGr'],['RGUI','RWin'],
+  ],
+  Function: Array.from({ length: 12 }, (_, i) => ['F' + (i + 1), 'F' + (i + 1)]),
+  Media: [
+    ['MUTE','Mute'],['VOLD','Vol−'],['VOLU','Vol+'],['MPLY','Play'],['MPRV','Prev'],['MNXT','Next'],['MSTP','Stop'],['BRID','Bri−'],['BRIU','Bri+'],
+  ],
+  Mouse: [
+    ['MB_LMB','LClick'],['MB_RMB','RClick'],['MB_MMB','MClick'],['MS_UP','M↑'],['MS_DOWN','M↓'],['MS_LEFT','M←'],['MS_RIGHT','M→'],
+    ['MW_UP','Wh↑'],['MW_DOWN','Wh↓'],
+  ],
+  Special: [
+    ['TRNS','▽'],['NO','✕'],['BOOTLOADER','Boot'],['RELOAD','Reload'],
+  ],
+  Layers: [], // filled dynamically
+};
+const LABEL = {};
+for (const list of Object.values(CATALOGUE)) for (const [n, l] of list) LABEL[n] = l;
+const MOD_NAMES = ['LCTL','LSFT','LALT','LGUI','RCTL','RSFT','RALT','RGUI'];
+const ALIASES = { '_': 'TRNS', '___': 'TRNS', 'XXX': 'NO', 'RIGHT': 'RGHT', 'ENTER': 'ENT', 'SPACE': 'SPC',
+  'ESCAPE': 'ESC', 'BKSP': 'BSPC', 'MS_DN': 'MS_DOWN', 'MS_LT': 'MS_LEFT', 'MS_RT': 'MS_RIGHT', 'MW_DN': 'MW_DOWN' };
+const FUNCS = { MO: ['layer'], TG: ['layer'], TO: ['layer'], DF: ['layer'], TT: ['layer'], LM: ['layer', 'key'],
+  LT: ['layer', 'key'], HT: ['key', 'key'] };
+for (const m of MOD_NAMES) FUNCS[m] = ['key'];
+const KNOWN = new Set([...Object.keys(LABEL), ...Object.keys(ALIASES),
+  ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''), ...Array.from({ length: 24 }, (_, i) => 'F' + (i + 1)),
+  'MW_LEFT','MW_RIGHT','RCTRL','LCTRL','LSHIFT','RSHIFT','PAUS','SLCK','NLCK']);
+
+const KEYCODE_TO_KMK = {
+  Minus:'MINS', Equal:'EQL', BracketLeft:'LBRC', BracketRight:'RBRC', Backslash:'BSLS', Semicolon:'SCLN',
+  Quote:'QUOT', Backquote:'GRV', Comma:'COMM', Period:'DOT', Slash:'SLSH', Escape:'ESC', Tab:'TAB', Enter:'ENT',
+  Space:'SPC', Backspace:'BSPC', Delete:'DEL', Insert:'INS', CapsLock:'CAPS', PrintScreen:'PSCR',
+  ArrowLeft:'LEFT', ArrowRight:'RGHT', ArrowUp:'UP', ArrowDown:'DOWN', Home:'HOME', End:'END', PageUp:'PGUP',
+  PageDown:'PGDN', Pause:'PAUS', ScrollLock:'SLCK', NumLock:'NLCK', ControlLeft:'LCTL', ShiftLeft:'LSFT', AltLeft:'LALT', MetaLeft:'LGUI', ControlRight:'RCTL',
+  ShiftRight:'RSFT', AltRight:'RALT', MetaRight:'RGUI',
+};
+
+// ------------------------------------------------------------------ default keymap
+const DEFAULT_KEYMAP = {
+  version: 1,
+  settings: { tap_time: 220, combo_timeout: 50, debounce_ms: 20 },
+  layers: [
+    { name: 'Base', keys: [
+      'Q','W','E','R','T','Y','U','I','O','P',
+      'A','S','D','F','G','H','J','K','L','SCLN',
+      'HT(Z, LSFT)','HT(X, LCTL)','HT(C, LALT)','V','B','N','M','HT(COMM, RALT)','HT(DOT, RCTL)','HT(SLSH, RSFT)',
+      'HT(TAB, LGUI)','LT(1, SPC)','LT(2, ENT)','BSPC'] },
+    { name: 'Symbols', keys: [
+      'N1','N2','N3','N4','N5','N6','N7','N8','N9','N0',
+      'EXLM','AT','HASH','DLR','PERC','CIRC','AMPR','ASTR','LPRN','RPRN',
+      'GRV','TILD','MINS','EQL','LBRC','RBRC','UNDS','PLUS','BSLS','QUOT',
+      'TRNS','TRNS','TRNS','DEL'] },
+    { name: 'Nav', keys: [
+      'F1','F2','F3','F4','F5','HOME','PGDN','PGUP','END','F12',
+      'LGUI','LALT','LCTL','LSFT','F11','LEFT','DOWN','UP','RGHT','CAPS',
+      'F6','F7','F8','F9','F10','MPRV','VOLD','MUTE','VOLU','MNXT',
+      'ESC','TRNS','TRNS','MPLY'] },
+  ],
+  combos: [ { keys: [16, 17], output: 'ESC' }, { keys: [12, 13], output: 'TAB' } ],
+};
+
+// ------------------------------------------------------------------ expression parser
+// Mirrors the firmware parser: NAME | NAME(arg, ...) | int | k=v
+function parseExpr(src) {
+  let s = String(src ?? '').trim();
+  if (s.startsWith('KC.')) s = s.slice(3);
+  if (s === '' ) return { name: 'TRNS', args: [] };
+  let i = 0;
+  const peek = () => s[i];
+  const ws = () => { while (i < s.length && /\s/.test(s[i])) i++; };
+  function node() {
+    ws();
+    let m = /^-?\d+/.exec(s.slice(i));
+    if (m) { i += m[0].length; return { int: parseInt(m[0], 10) }; }
+    m = /^(?:KC\.)?([A-Za-z_][A-Za-z0-9_]*)/.exec(s.slice(i));
+    if (!m) throw new Error(`unexpected "${s.slice(i, i + 6) || 'end'}"`);
+    i += m[0].length;
+    let name = m[1];
+    ws();
+    if (peek() === '=') { i++; return { kw: name, value: node() }; }
+    name = name.toUpperCase();
+    if (peek() !== '(') return { name, args: [] };
+    i++;
+    const args = [];
+    ws();
+    if (peek() === ')') { i++; return { name, args }; }
+    for (;;) {
+      args.push(node());
+      ws();
+      if (peek() === ',') { i++; continue; }
+      if (peek() === ')') { i++; break; }
+      throw new Error('missing ")"');
+    }
+    return { name, args };
+  }
+  const n = node();
+  ws();
+  if (i < s.length) throw new Error(`unexpected "${s.slice(i)}"`);
+  return n;
+}
+function canon(name) { return ALIASES[name] || name; }
+function validate(n, layerCount, ctx = 'key') {
+  if (n.int !== undefined) {
+    if (ctx === 'layer' && (n.int < 0 || n.int >= layerCount)) throw new Error(`layer ${n.int} doesn't exist`);
+    if (ctx === 'key') throw new Error(`bare number ${n.int}: use N${n.int} for a digit key`);
+    return;
+  }
+  if (n.kw) return;
+  const name = canon(n.name);
+  if (ctx === 'layer') throw new Error(`expected a layer number, got ${n.name}`);
+  if (n.args.length === 0) {
+    if (FUNCS[name] && !MOD_NAMES.includes(name)) throw new Error(`${name}(…) needs arguments`);
+    if (!KNOWN.has(name)) throw new Error(`unknown key "${n.name}"`);
+    return;
+  }
+  const sig = FUNCS[name];
+  if (!sig) throw new Error(`${n.name} doesn't take arguments`);
+  const pos = n.args.filter(a => !a.kw);
+  if (pos.length !== sig.length) throw new Error(`${name} takes ${sig.length} argument${sig.length > 1 ? 's' : ''}`);
+  pos.forEach((a, k) => validate(a, layerCount, sig[k]));
+}
+function fmt(n) {
+  if (n.int !== undefined) return String(n.int);
+  if (n.kw) return `${n.kw}=${fmt(n.value)}`;
+  if (!n.args.length) return canon(n.name);
+  return `${canon(n.name)}(${n.args.map(fmt).join(', ')})`;
+}
+
+// Break an expression into editor parts: tap key, wrapped mods, hold action.
+function decompose(expr) {
+  let n;
+  try { n = parseExpr(expr); } catch { return null; }
+  let hold = 'none', tap = n;
+  const extra = [];
+  if (n.name === 'HT' && n.args.length >= 2 && !n.args[1].kw && MOD_NAMES.includes(canon(n.args[1].name || '')) && !n.args[1].args.length) {
+    hold = 'mod:' + canon(n.args[1].name); tap = n.args[0]; extra.push(...n.args.slice(2));
+  } else if (n.name === 'LT' && n.args.length >= 2 && n.args[0].int !== undefined) {
+    hold = 'layer:' + n.args[0].int; tap = n.args[1]; extra.push(...n.args.slice(2));
+  }
+  const mods = [];
+  while (tap && tap.name && MOD_NAMES.includes(canon(tap.name)) && tap.args.length === 1) {
+    mods.push(canon(tap.name)); tap = tap.args[0];
+  }
+  if (!tap || tap.int !== undefined || tap.kw) return null;
+  return { hold, mods, tap, extra };
+}
+function compose({ hold, mods, tap, extra }) {
+  let n = tap;
+  for (const m of [...mods].reverse()) n = { name: m, args: [n] };
+  if (hold.startsWith('mod:')) n = { name: 'HT', args: [n, { name: hold.slice(4), args: [] }, ...extra] };
+  else if (hold.startsWith('layer:')) n = { name: 'LT', args: [{ int: +hold.slice(6) }, n, ...extra] };
+  return fmt(n);
+}
+
+// ------------------------------------------------------------------ labels
+const MOD_SHORT = { LCTL:'Ctrl', LSFT:'Shift', LALT:'Alt', LGUI:'Win', RCTL:'RCtrl', RSFT:'RShift', RALT:'AltGr', RGUI:'RWin' };
+const MOD_GLYPH = { LCTL:'C', RCTL:'C', LSFT:'S', RSFT:'S', LALT:'A', RALT:'A', LGUI:'W', RGUI:'W' };
+function layerName(i) { const l = state.layers[i]; return l ? (l.name || `Layer ${i}`) : `L${i}`; }
+function keyFace(expr) {
+  let n;
+  try { n = parseExpr(expr); } catch { return { main: expr, sub: '' }; }
+  const name = canon(n.name || '');
+  const d = decompose(expr);
+  if (d && (d.hold !== 'none' || d.mods.length) && !d.tap.args.length) {
+    const tapL = LABEL[canon(d.tap.name)] || d.tap.name;
+    const main = (d.mods.length ? d.mods.map(m => MOD_GLYPH[m]).join('') + '-' : '') + tapL;
+    let sub = '';
+    if (d.hold.startsWith('mod:')) sub = MOD_SHORT[d.hold.slice(4)];
+    else if (d.hold.startsWith('layer:')) sub = layerName(+d.hold.slice(6));
+    return { main, sub };
+  }
+  if (['MO','TG','TO','DF','TT'].includes(name) && n.args[0]?.int !== undefined) {
+    const verb = { MO: 'hold', TG: 'toggle', TO: 'go to', DF: 'default', TT: 'tap-toggle' }[name];
+    return { main: layerName(n.args[0].int), sub: verb };
+  }
+  if (!n.args.length) return { main: LABEL[name] || n.name, sub: '' };
+  return { main: fmt(n), sub: '' };
+}
+
+// ------------------------------------------------------------------ state
+let state = structuredClone(DEFAULT_KEYMAP);
+let curLayer = 0, selKey = 0, dirty = false;
+let dirHandle = null;
+let comboEdit = null; // index of combo being picked on the board
+let listening = false;
+let catSel = 'Letters';
+const undoStack = [], redoStack = [];
+
+function normalize(km) {
+  const out = { version: 1, settings: { ...DEFAULT_KEYMAP.settings, ...(km.settings || {}) }, layers: [], combos: [] };
+  for (const l of km.layers || []) {
+    const keys = (l.keys || []).slice(0, NUM_KEYS).map(String);
+    while (keys.length < NUM_KEYS) keys.push('NO');
+    out.layers.push({ name: String(l.name ?? `Layer ${out.layers.length}`), keys });
+  }
+  if (!out.layers.length) out.layers.push({ name: 'Base', keys: Array(NUM_KEYS).fill('NO') });
+  for (const c of km.combos || []) {
+    if (Array.isArray(c.keys)) out.combos.push({ ...c, keys: c.keys.map(Number), output: String(c.output ?? 'NO') });
+  }
+  return out;
+}
+function snapshot() { return JSON.stringify(state); }
+function mutate(fn) {
+  undoStack.push(snapshot()); if (undoStack.length > 200) undoStack.shift();
+  redoStack.length = 0;
+  fn();
+  setDirty(true);
+  render();
+}
+function undo() { if (!undoStack.length) return; redoStack.push(snapshot()); state = JSON.parse(undoStack.pop()); fixSel(); setDirty(true); render(); }
+function redo() { if (!redoStack.length) return; undoStack.push(snapshot()); state = JSON.parse(redoStack.pop()); fixSel(); setDirty(true); render(); }
+function fixSel() { curLayer = Math.min(curLayer, state.layers.length - 1); }
+function setDirty(v) {
+  dirty = v;
+  $('saveBtn').textContent = dirty ? 'Save to keyboard •' : 'Save to keyboard';
+  $('saveBtn').disabled = !dirHandle;
+}
+
+// ------------------------------------------------------------------ dom helpers
+const $ = id => document.getElementById(id);
+function el(tag, props = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') e.className = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (k === 'text') e.textContent = v; else e.setAttribute(k, v);
+  }
+  for (const k of kids) if (k != null) e.append(k);
+  return e;
+}
+function banner(msg, kind = 'ok', ms = 0) {
+  const b = $('banner');
+  b.className = `banner show ${kind}`; b.textContent = msg;
+  clearTimeout(banner.t);
+  if (ms) banner.t = setTimeout(() => b.classList.remove('show'), ms);
+}
+
+// ------------------------------------------------------------------ rendering
+function keyError(expr) {
+  try { validate(parseExpr(expr), state.layers.length); return null; } catch (e) { return e.message; }
+}
+function render() {
+  renderTabs(); renderBoard(); renderEditor(); renderCombos(); renderSettings(); renderStats();
+}
+function renderTabs() {
+  const t = $('tabs'); t.replaceChildren();
+  state.layers.forEach((l, i) => t.append(el('button', {
+    class: 'tab' + (i === curLayer ? ' sel' : ''), onclick: () => { curLayer = i; render(); },
+  }, el('span', { class: 'n', text: i }), l.name || `Layer ${i}`)));
+}
+function sizeBoard() {
+  const card = document.querySelector('.board-card');
+  const avail = card.clientWidth - 36;
+  const u = Math.max(28, Math.min(64, avail / BOARD_W));
+  const b = $('board');
+  b.style.setProperty('--u', u + 'px');
+  b.style.width = u * BOARD_W + 'px';
+  b.style.height = u * BOARD_H + 'px';
+  return u;
+}
+function renderBoard() {
+  const u = sizeBoard();
+  const b = $('board'); b.replaceChildren();
+  const layer = state.layers[curLayer];
+  const comboKeys = comboEdit !== null ? new Set(state.combos[comboEdit]?.keys || []) : null;
+  GEOM.forEach((g, i) => {
+    const expr = layer.keys[i];
+    const face = keyFace(expr);
+    const err = keyError(expr);
+    let n; try { n = parseExpr(expr); } catch { n = {}; }
+    const cls = ['key'];
+    if (i === selKey && comboEdit === null) cls.push('sel');
+    if (err) cls.push('invalid');
+    if (canon(n.name || '') === 'TRNS') cls.push('trns');
+    if (comboKeys?.has(i)) cls.push('combo-member');
+    const k = el('div', {
+      class: cls.join(' '), role: 'button', tabindex: '-1', title: `#${i}: ${expr}${err ? '\n⚠ ' + err : ''}`,
+      onclick: () => onKeyClick(i),
+    },
+      el('span', { class: 'pos', text: i }),
+      el('span', { class: 'main' + (face.main.length > 5 ? ' long' : ''), text: face.main }),
+      face.sub ? el('span', { class: 'sub', text: face.sub }) : null,
+    );
+    Object.assign(k.style, { left: g.x * u + 2 + 'px', top: g.y * u + 2 + 'px', width: u - 4 + 'px', height: u - 4 + 'px' });
+    b.append(k);
+  });
+}
+function onKeyClick(i) {
+  if (comboEdit !== null) {
+    mutate(() => {
+      const c = state.combos[comboEdit];
+      const at = c.keys.indexOf(i);
+      if (at >= 0) c.keys.splice(at, 1); else c.keys.push(i);
+      c.keys.sort((a, b) => a - b);
+    });
+    return;
+  }
+  selKey = i; stopListening(); render();
+}
+function setKey(expr) {
+  mutate(() => { state.layers[curLayer].keys[selKey] = expr; });
+}
+
+function renderEditor() {
+  const expr = state.layers[curLayer].keys[selKey];
+  $('keyTitle').textContent = `#${selKey} on ${layerName(curLayer)}`;
+  const input = $('exprInput');
+  if (document.activeElement !== input) input.value = expr;
+  const err = keyError(input.value);
+  input.classList.toggle('bad', !!err);
+  $('exprErr').textContent = err ? '⚠ ' + err : '';
+
+  const d = decompose(expr);
+  const simple = d && !d.tap.args.length;
+  $('tapLabel').textContent = simple ? (LABEL[canon(d.tap.name)] || d.tap.name) + ` (${canon(d.tap.name)})` :
+    (d ? 'custom expression' : 'invalid expression');
+
+  // category tabs
+  CATALOGUE.Layers = [];
+  state.layers.forEach((l, i) => {
+    CATALOGUE.Layers.push([`MO(${i})`, `Hold ${l.name}`], [`TG(${i})`, `Toggle ${l.name}`], [`TO(${i})`, `To ${l.name}`]);
+  });
+  const cats = $('cats'); cats.replaceChildren();
+  for (const c of Object.keys(CATALOGUE)) {
+    cats.append(el('button', { class: 'btn small' + (c === catSel ? ' active' : ''), onclick: () => { catSel = c; renderEditor(); } }, c));
+  }
+  const pal = $('palette'); pal.replaceChildren();
+  pal.style.gridTemplateColumns = catSel === 'Layers' ? 'repeat(auto-fill, minmax(110px, 1fr))' : '';
+  const curTap = simple ? canon(d.tap.name) : null;
+  for (const [name, label] of CATALOGUE[catSel]) {
+    const isFunc = name.includes('(');
+    pal.append(el('button', {
+      class: 'pk' + ((!isFunc && name === curTap) || (isFunc && name === fmt(safeParse(expr) || {name:''})) ? ' on' : ''),
+      title: name,
+      onclick: () => pickKey(name),
+    }, label));
+  }
+
+  // modifiers + hold
+  const wm = $('withMods'); wm.replaceChildren();
+  for (const m of ['LCTL', 'LSFT', 'LALT', 'LGUI', 'RALT']) {
+    const cb = el('input', { type: 'checkbox' });
+    cb.checked = !!d?.mods.includes(m);
+    cb.disabled = !simple;
+    cb.addEventListener('change', () => {
+      const mods = d.mods.filter(x => x !== m);
+      if (cb.checked) mods.push(m);
+      mods.sort((a, b) => MOD_NAMES.indexOf(a) - MOD_NAMES.indexOf(b));
+      setKey(compose({ ...d, mods }));
+    });
+    wm.append(el('label', {}, cb, MOD_SHORT[m]));
+  }
+  const hs = $('holdSel'); hs.replaceChildren();
+  hs.append(el('option', { value: 'none' }, 'Nothing (plain key)'));
+  const og1 = el('optgroup', { label: 'Modifier (home-row mod)' });
+  for (const m of MOD_NAMES) og1.append(el('option', { value: 'mod:' + m }, MOD_SHORT[m]));
+  const og2 = el('optgroup', { label: 'Layer' });
+  state.layers.forEach((l, i) => og2.append(el('option', { value: 'layer:' + i }, `${i}: ${l.name}`)));
+  hs.append(og1, og2);
+  hs.value = d ? d.hold : 'none';
+  hs.disabled = !simple;
+}
+function safeParse(s) { try { return parseExpr(s); } catch { return null; } }
+function pickKey(name) {
+  stopListening();
+  if (name.includes('(')) { setKey(name); return; }
+  const d = decompose(state.layers[curLayer].keys[selKey]);
+  if (d && !d.tap.args.length && MOD_NAMES.includes(name) && d.hold === 'none' && !d.mods.length) { setKey(name); return; }
+  const keep = d && !d.tap.args.length ? d : { hold: 'none', mods: [], extra: [] };
+  setKey(compose({ ...keep, tap: { name, args: [] } }));
+}
+
+function renderCombos() {
+  const box = $('combos'); box.replaceChildren();
+  if (!state.combos.length) box.append(el('div', { class: 'muted', text: 'No combos yet.' }));
+  state.combos.forEach((c, ci) => {
+    const keysTxt = c.keys.length ? c.keys.map(p => {
+      const f = keyFace(state.layers[0].keys[p] ?? 'NO'); return `${f.main}#${p}`;
+    }).join(' + ') : '(click keys on the board)';
+    const out = el('input', { type: 'text', value: c.output, 'aria-label': 'Combo output', spellcheck: 'false' });
+    const err = keyError(c.output);
+    if (err) { out.classList.add('bad'); out.title = err; }
+    out.addEventListener('change', () => mutate(() => { c.output = out.value.trim(); }));
+    const pick = el('button', { class: 'btn small' + (comboEdit === ci ? ' active' : ''), onclick: () => {
+      comboEdit = comboEdit === ci ? null : ci; render();
+    } }, comboEdit === ci ? 'Done' : 'Pick keys');
+    const del = el('button', { class: 'btn small', title: 'Delete combo', onclick: () => {
+      mutate(() => { state.combos.splice(ci, 1); if (comboEdit === ci) comboEdit = null; });
+    } }, '✕');
+    box.append(el('div', { class: 'combo' }, el('span', { class: 'ks', text: keysTxt }), el('span', { class: 'muted', text: '→' }), out, pick, del));
+  });
+  $('comboHint').textContent = comboEdit !== null ? 'Click keys on the board to add or remove them.' : '';
+}
+function renderSettings() {
+  for (const [id, k] of [['sTap', 'tap_time'], ['sCombo', 'combo_timeout'], ['sDeb', 'debounce_ms']]) {
+    if (document.activeElement !== $(id)) $(id).value = state.settings[k];
+  }
+}
+function renderStats() {
+  let bad = 0;
+  for (const l of state.layers) for (const k of l.keys) if (keyError(k)) bad++;
+  for (const c of state.combos) { if (keyError(c.output)) bad++; if (c.keys.length < 2) bad++; }
+  $('stats').textContent = `${state.layers.length} layers · ${state.combos.length} combos` + (bad ? ` · ⚠ ${bad} problem${bad > 1 ? 's' : ''}` : '');
+  $('stats').style.color = bad ? 'var(--bad)' : '';
+  return bad;
+}
+
+// ------------------------------------------------------------------ serialization
+function toJSON(km) {
+  const q = s => JSON.stringify(s);
+  const lines = ['{', '  "version": 1,', `  "settings": ${JSON.stringify(km.settings)},`, '  "layers": ['];
+  km.layers.forEach((l, li) => {
+    const rows = [l.keys.slice(0, 10), l.keys.slice(10, 20), l.keys.slice(20, 30), l.keys.slice(30)];
+    lines.push('    {', `      "name": ${q(l.name)},`, '      "keys": [');
+    rows.forEach((r, ri) => lines.push('        ' + r.map(q).join(', ') + (ri < 3 ? ',' : '')));
+    lines.push('      ]', '    }' + (li < km.layers.length - 1 ? ',' : ''));
+  });
+  lines.push('  ],', '  "combos": [');
+  km.combos.forEach((c, ci) => lines.push('    ' + JSON.stringify(c) + (ci < km.combos.length - 1 ? ',' : '')));
+  lines.push('  ]', '}', '');
+  return lines.join('\n');
+}
+function loadJSONText(text, source) {
+  let km;
+  try { km = JSON.parse(text); } catch (e) { banner(`${source}: not valid JSON (${e.message})`, 'bad'); return false; }
+  undoStack.push(snapshot());
+  state = normalize(km); curLayer = 0; selKey = Math.min(selKey, NUM_KEYS - 1); comboEdit = null;
+  render();
+  return true;
+}
+
+// ------------------------------------------------------------------ keyboard drive (File System Access API)
+const fsSupported = 'showDirectoryPicker' in window;
+const IDB = {
+  db: () => new Promise((res, rej) => { const r = indexedDB.open('sweep-config', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }),
+  async get(k) { const db = await this.db(); return new Promise(res => { const r = db.transaction('kv').objectStore('kv').get(k); r.onsuccess = () => res(r.result); r.onerror = () => res(undefined); }); },
+  async set(k, v) { const db = await this.db(); return new Promise(res => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = res; }); },
+};
+async function useHandle(h) {
+  let hasCode = false;
+  try { await h.getFileHandle('code.py'); hasCode = true; } catch {}
+  let text = null;
+  try { text = await (await (await h.getFileHandle('keymap.json')).getFile()).text(); } catch {}
+  dirHandle = h;
+  try { await IDB.set('dir', h); } catch {}
+  $('connDot').classList.add('on');
+  $('connText').textContent = `Opened ${h.name || 'drive'}`;
+  if (text != null && (!dirty || confirm('Load keymap.json from the keyboard? Unsaved changes here will be replaced.'))) {
+    if (loadJSONText(text, 'keymap.json')) { setDirty(false); banner(`Loaded keymap.json from ${h.name}.`, 'ok', 3000); }
+  } else if (text == null) {
+    banner(`${h.name} has no keymap.json yet. Saving will create it.` + (hasCode ? '' : ' It also has no code.py: did you pick the keyboard drive?'), 'warn');
+  }
+  setDirty(dirty);
+}
+async function openDrive() {
+  if (!fsSupported) { banner('This browser can’t write to drives. Use Chrome or Edge, or download keymap.json and copy it to the keyboard drive.', 'warn'); return; }
+  try {
+    const h = await window.showDirectoryPicker({ id: 'sweep', mode: 'readwrite' });
+    await useHandle(h);
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    banner(`Couldn’t open that folder: ${e.message}. If the browser refuses the drive root, use “Download keymap.json” and copy it to the keyboard drive.`, 'bad');
+  }
+}
+async function reconnect() {
+  const h = await IDB.get('dir').catch(() => null);
+  if (!h) return;
+  $('connText').textContent = `Last used: ${h.name}`;
+  const p = await h.queryPermission({ mode: 'readwrite' }).catch(() => 'denied');
+  if (p === 'granted') { await useHandle(h).catch(() => {}); return; }
+  const btn = $('openBtn');
+  btn.textContent = `Reconnect ${h.name}`;
+  btn.onclick = async () => {
+    try {
+      if (await h.requestPermission({ mode: 'readwrite' }) === 'granted') { await useHandle(h); }
+    } catch { /* drive gone: fall back to picker */ return openDrive(); }
+    btn.textContent = 'Open keyboard drive…'; btn.onclick = openDrive;
+  };
+}
+async function save() {
+  if (!dirHandle) return;
+  const bad = renderStats();
+  if (bad && !confirm(`${bad} key(s) have problems and will act as “no key” on the keyboard. Save anyway?`)) return;
+  try {
+    const fh = await dirHandle.getFileHandle('keymap.json', { create: true });
+    const w = await fh.createWritable();
+    await w.write(toJSON(state));
+    await w.close();
+    setDirty(false);
+    banner(`Saved to ${dirHandle.name}. The keyboard reloads by itself in a second or two.`, 'ok', 4000);
+  } catch (e) {
+    banner(`Save failed: ${e.message}. Is the keyboard still plugged in?`, 'bad');
+    $('connDot').classList.remove('on');
+  }
+}
+function download() {
+  const a = el('a', { href: URL.createObjectURL(new Blob([toJSON(state)], { type: 'application/json' })), download: 'keymap.json' });
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+// ------------------------------------------------------------------ listen mode
+function startListening() { listening = true; pendingMod = null; $('listenBtn').classList.add('listen'); $('listenBtn').textContent = 'Listening… (Esc cancels)'; }
+function stopListening() { listening = false; const b = $('listenBtn'); b.classList.remove('listen'); b.textContent = 'Press a key…'; }
+function codeToName(e) {
+  if (/^Key[A-Z]$/.test(e.code)) return e.code.slice(3);
+  if (/^Digit\d$/.test(e.code)) return 'N' + e.code.slice(5);
+  if (/^F\d{1,2}$/.test(e.code)) return e.code;
+  return KEYCODE_TO_KMK[e.code];
+}
+
+// ------------------------------------------------------------------ events
+document.addEventListener('keydown', e => {
+  if (listening) {
+    e.preventDefault();
+    if (e.code === 'Escape') { stopListening(); return; }
+    const name = codeToName(e);
+    if (!name) return;
+    if (MOD_NAMES.includes(name)) {
+      // A modifier may be the start of a chord like Ctrl+C: assign it on keyup if nothing else came.
+      pendingMod = name; return;
+    }
+    pendingMod = null;
+    const mods = [];
+    if (e.ctrlKey) mods.push('LCTL'); if (e.shiftKey) mods.push('LSFT'); if (e.altKey) mods.push('LALT'); if (e.metaKey) mods.push('LGUI');
+    stopListening();
+    const d = decompose(state.layers[curLayer].keys[selKey]);
+    setKey(compose({ hold: d && !d.tap.args.length ? d.hold : 'none', mods, tap: { name, args: [] }, extra: [] }));
+    return;
+  }
+  const t = e.target;
+  if (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA') {
+    if (t.id === 'exprInput' && e.key === 'Enter') t.blur();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); dirHandle ? save() : download(); return; }
+  const moves = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  if (moves[e.key]) {
+    e.preventDefault();
+    const [dx, dy] = moves[e.key], g = GEOM[selKey];
+    let best = selKey, bestD = Infinity;
+    GEOM.forEach((h, i) => {
+      const vx = h.x - g.x, vy = h.y - g.y;
+      if (dx && Math.sign(vx) !== dx || dy && Math.sign(vy) !== dy) return;
+      if (dx && Math.abs(vx) < 0.5 || dy && Math.abs(vy) < 0.5) return;
+      const dist = dx ? Math.abs(vx) + Math.abs(vy) * 3 : Math.abs(vy) + Math.abs(vx) * 3;
+      if (dist < bestD) { bestD = dist; best = i; }
+    });
+    selKey = best; render(); return;
+  }
+  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); setKey('TRNS'); }
+});
+let pendingMod = null;
+document.addEventListener('keyup', e => {
+  if (listening && pendingMod) {
+    const name = codeToName(e);
+    if (name === pendingMod) { stopListening(); const n = pendingMod; pendingMod = null; pickKey(n); }
+  }
+});
+
+$('exprInput').addEventListener('input', e => {
+  const err = keyError(e.target.value);
+  e.target.classList.toggle('bad', !!err);
+  $('exprErr').textContent = err ? '⚠ ' + err : '';
+});
+$('exprInput').addEventListener('change', e => {
+  let v = e.target.value.trim();
+  const n = safeParse(v);
+  if (n) v = fmt(n);
+  if (v !== state.layers[curLayer].keys[selKey]) setKey(v);
+});
+$('holdSel').addEventListener('change', e => {
+  const d = decompose(state.layers[curLayer].keys[selKey]);
+  if (d) setKey(compose({ ...d, hold: e.target.value }));
+});
+$('listenBtn').addEventListener('click', () => listening ? stopListening() : startListening());
+
+$('openBtn').onclick = openDrive;
+$('saveBtn').onclick = save;
+$('moreBtn').onclick = e => { e.stopPropagation(); $('moreMenu').classList.toggle('open'); };
+document.addEventListener('click', () => $('moreMenu').classList.remove('open'));
+$('importBtn').onclick = () => $('fileInput').click();
+$('fileInput').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  if (loadJSONText(await f.text(), f.name)) { setDirty(true); banner(`Imported ${f.name}.`, 'ok', 3000); }
+  e.target.value = '';
+};
+$('downloadBtn').onclick = download;
+$('resetBtn').onclick = () => { if (confirm('Replace the whole keymap with the default?')) mutate(() => { state = structuredClone(DEFAULT_KEYMAP); curLayer = 0; }); };
+
+$('layerName').addEventListener('change', e => mutate(() => { state.layers[curLayer].name = e.target.value.trim() || `Layer ${curLayer}`; }));
+$('addLayerBtn').onclick = () => mutate(() => { state.layers.push({ name: `Layer ${state.layers.length}`, keys: Array(NUM_KEYS).fill('TRNS') }); curLayer = state.layers.length - 1; });
+$('copyLayerBtn').onclick = () => mutate(() => { const l = state.layers[curLayer]; state.layers.push({ name: l.name + ' copy', keys: [...l.keys] }); curLayer = state.layers.length - 1; });
+$('delLayerBtn').onclick = () => {
+  if (state.layers.length === 1) { banner('A keymap needs at least one layer.', 'warn', 3000); return; }
+  if (!confirm(`Delete layer ${curLayer} “${layerName(curLayer)}”? Layer keys pointing at later layers are renumbered.`)) return;
+  mutate(() => { remapLayers(i => i === curLayer ? null : i > curLayer ? i - 1 : i); state.layers.splice(curLayer, 1); fixSel(); });
+};
+function moveLayer(dir) {
+  const a = curLayer, b = curLayer + dir;
+  if (b < 0 || b >= state.layers.length) return;
+  if (a === 0 || b === 0) { if (!confirm('Layer 0 is the base layer the keyboard starts on. Move anyway?')) return; }
+  mutate(() => { remapLayers(i => i === a ? b : i === b ? a : i); [state.layers[a], state.layers[b]] = [state.layers[b], state.layers[a]]; curLayer = b; });
+}
+$('moveLeftBtn').onclick = () => moveLayer(-1);
+$('moveRightBtn').onclick = () => moveLayer(1);
+// Rewrite layer numbers in MO/TG/TO/DF/TT/LM/LT after layers move or disappear.
+function remapLayers(f) {
+  const walk = n => {
+    if (!n || n.int !== undefined || n.kw) return n;
+    const sig = FUNCS[canon(n.name)];
+    // Layer-tap onto a deleted layer: keep the tap key.
+    if (canon(n.name) === 'LT' && n.args[0]?.int !== undefined && f(n.args[0].int) === null) return walk(n.args[1]);
+    let pi = 0;
+    n.args = n.args.map(a => {
+      if (a.kw) return a;
+      const kind = sig?.[pi++];
+      if (kind === 'layer' && a.int !== undefined) { const m = f(a.int); return m === null ? { int: -1 } : { int: m }; }
+      return walk(a);
+    });
+    return n;
+  };
+  const fix = s => { const n = safeParse(s); if (!n) return s; const out = fmt(walk(n)); return out.includes('-1') ? 'NO' : out; };
+  for (const l of state.layers) l.keys = l.keys.map(fix);
+  for (const c of state.combos) c.output = fix(c.output);
+}
+$('addComboBtn').onclick = () => mutate(() => { state.combos.push({ keys: [], output: 'ESC' }); comboEdit = state.combos.length - 1; });
+for (const [id, k, lo, hi] of [['sTap', 'tap_time', 50, 1000], ['sCombo', 'combo_timeout', 10, 500], ['sDeb', 'debounce_ms', 1, 100]]) {
+  $(id).addEventListener('change', e => {
+    const v = Math.round(Number(e.target.value));
+    if (!Number.isFinite(v)) return;
+    mutate(() => { state.settings[k] = Math.max(lo, Math.min(hi, v)); });
+  });
+}
+window.addEventListener('resize', () => renderBoard());
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+const _renderTabs = renderTabs;
+renderTabs = function () { _renderTabs(); if (document.activeElement !== $('layerName')) $('layerName').value = state.layers[curLayer].name; };
+
+render();
+setDirty(false);
+if (fsSupported) reconnect();
+else banner('This browser can’t write to the keyboard drive directly. Edit here, then use More ▸ Download keymap.json and copy it onto the drive. Chrome and Edge can save directly.', 'warn');
+</script>
+</body>
+</html>

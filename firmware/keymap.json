@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "settings": {
+    "tap_time": 220,
+    "combo_timeout": 50,
+    "debounce_ms": 20
+  },
+  "layers": [
+    {
+      "name": "Base",
+      "keys": [
+        "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P",
+        "A", "S", "D", "F", "G", "H", "J", "K", "L", "SCLN",
+        "HT(Z, LSFT)", "HT(X, LCTL)", "HT(C, LALT)", "V", "B", "N", "M", "HT(COMM, RALT)", "HT(DOT, RCTL)", "HT(SLSH, RSFT)",
+        "HT(TAB, LGUI)", "LT(1, SPC)", "LT(2, ENT)", "BSPC"
+      ]
+    },
+    {
+      "name": "Symbols",
+      "keys": [
+        "N1", "N2", "N3", "N4", "N5", "N6", "N7", "N8", "N9", "N0",
+        "EXLM", "AT", "HASH", "DLR", "PERC", "CIRC", "AMPR", "ASTR", "LPRN", "RPRN",
+        "GRV", "TILD", "MINS", "EQL", "LBRC", "RBRC", "UNDS", "PLUS", "BSLS", "QUOT",
+        "TRNS", "TRNS", "TRNS", "DEL"
+      ]
+    },
+    {
+      "name": "Nav",
+      "keys": [
+        "F1", "F2", "F3", "F4", "F5", "HOME", "PGDN", "PGUP", "END", "F12",
+        "LGUI", "LALT", "LCTL", "LSFT", "F11", "LEFT", "DOWN", "UP", "RGHT", "CAPS",
+        "F6", "F7", "F8", "F9", "F10", "MPRV", "VOLD", "MUTE", "VOLU", "MNXT",
+        "ESC", "TRNS", "TRNS", "MPLY"
+      ]
+    }
+  ],
+  "combos": [
+    { "keys": [16, 17], "output": "ESC" },
+    { "keys": [12, 13], "output": "TAB" }
+  ]
+}

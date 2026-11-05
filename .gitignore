@@ -1,0 +1,36 @@
+# KMK library and CircuitPython builds are downloaded, not versioned
+kmk/
+lib/
+*.uf2
+*.mpy
+
+# Local copies of keyboard drive contents
+CIRCUITPY/
+SWEEPL/
+SWEEPR/
+boot_out.txt
+settings.toml
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editors and tools
+.vscode/
+.idea/
+*.swp
+*~
+.claude/settings.local.json
+
+# OS files
+.DS_Store
+._*
+.fseventsd/
+.Trashes
+.Trash-*
+.metadata_never_index
+System Volume Information/
+Thumbs.db
+desktop.ini
